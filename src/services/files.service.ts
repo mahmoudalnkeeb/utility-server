@@ -2,10 +2,24 @@ import path from 'path';
 import fs from 'fs';
 import archiver from 'archiver';
 
-export class FilesService {
-   dataFolder = path.resolve(process.cwd(), 'data');
+interface FilesList {
+   folder: string;
+   files: string[];
+}
 
-   public getFilesList(): { folder: string; files: string[] }[] {
+interface DownloadResult {
+   success: boolean;
+   message?: string;
+}
+
+export class FilesService {
+   dataFolder: string;
+
+   constructor() {
+      this.dataFolder = path.resolve(process.cwd(), 'data');
+   }
+
+   public getFilesList(): FilesList[] {
       const folders = fs.readdirSync(this.dataFolder);
 
       return folders.map((folder) => {
@@ -15,7 +29,7 @@ export class FilesService {
       });
    }
 
-   public async downloadFiles(selectedFiles: string | string[]): Promise<{ success: boolean; message?: string }> {
+   public async downloadFiles(selectedFiles: string | string[]): Promise<DownloadResult> {
       try {
          if (!selectedFiles || (Array.isArray(selectedFiles) && selectedFiles.length === 0)) {
             return { success: false, message: 'No files selected' };
@@ -27,7 +41,6 @@ export class FilesService {
 
          output.on('close', () => {
             console.log('Download started...');
-            // No need to send the response here; it will be handled in the controller
          });
 
          archive.pipe(output);
@@ -42,7 +55,7 @@ export class FilesService {
             });
          }
 
-         await new Promise<void>((resolve, reject) => {
+         await new Promise<void>((resolve) => {
             output.on('close', () => resolve());
             archive.finalize();
          });
@@ -54,7 +67,7 @@ export class FilesService {
       }
    }
 
-   public downloadFile(file: string): { success: boolean; message?: string } {
+   public downloadFile(file: string): DownloadResult {
       try {
          const filePath = path.resolve(this.dataFolder, file);
 
@@ -66,8 +79,6 @@ export class FilesService {
          }
 
          console.log('File status:', 'FOUND');
-         // No need to send the response here; it will be handled in the controller
-
          console.log('Download started...');
          return { success: true };
       } catch (error) {
